@@ -5,6 +5,7 @@ import android.content.Context;
 import android.content.res.TypedArray;
 import android.graphics.Canvas;
 import android.graphics.Color;
+import android.graphics.DashPathEffect;
 import android.graphics.LinearGradient;
 import android.graphics.Paint;
 import android.graphics.RectF;
@@ -33,11 +34,14 @@ public class BeautifulCircularProgressBar extends View {
     private int width;
     private int height;
 
-    private Paint mMiddleArcPaint;
+    private Shader shaderGray = new LinearGradient(0,0,0,750, Color.parseColor("#666666"),Color.parseColor("#66666666"), Shader.TileMode.MIRROR);
+
+    private Paint mMiddleArcPaint,mMiddleArcSecondaryPaint;
 
     private Paint mCurrentTextPaint;
     private float radius;
-    private RectF mMiddleRect;
+    private RectF mMiddleRect, mMiddleSecondaryRect;
+    DashPathEffect dashPath = new DashPathEffect(new float[]{10,20}, (float)1.0);
 
 
     private int mMinNum = 0;
@@ -46,12 +50,11 @@ public class BeautifulCircularProgressBar extends View {
     private float mCurrentAngle = 0f;
     private float mMaxAngle = 280f;
 
-    private int decreaseBy20 = 280;
 
 
 
 
-    private Paint mNeedle, mLines;
+    private Paint mNeedle;
 
 
     public float progress = 0f; // TODO private
@@ -59,8 +62,7 @@ public class BeautifulCircularProgressBar extends View {
     private boolean mShowText = true;
 
     private String mFont = "sans-serif-condensed";
-    private int mTextColor = 0x99ffffff;
-    private boolean mShowStartEndText = false;
+
 
     public BeautifulCircularProgressBar(Context context) {
         this(context, null);
@@ -88,10 +90,13 @@ public class BeautifulCircularProgressBar extends View {
         arcDistance = dp2px(12);
 
         mMiddleArcPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
-        mMiddleArcPaint.setStrokeWidth(46);
-        mMiddleArcPaint.setStyle(Paint.Style.STROKE);
-        mMiddleArcPaint.setStrokeCap(Paint.Cap.ROUND);
+        mMiddleArcPaint.setStrokeWidth(56);
+        mMiddleArcPaint.setStyle(Paint.Style.FILL_AND_STROKE);
+        //mMiddleArcPaint.setStrokeCap(Paint.Cap.BUTT);
 
+        mMiddleArcSecondaryPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+        mMiddleArcSecondaryPaint.setStrokeWidth(15);
+        mMiddleArcSecondaryPaint.setStyle(Paint.Style.FILL_AND_STROKE);
 
 
         mCurrentTextPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
@@ -104,10 +109,6 @@ public class BeautifulCircularProgressBar extends View {
         mNeedle.setStyle(Paint.Style.FILL_AND_STROKE);
         mNeedle.setStrokeCap(Paint.Cap.ROUND);
 
-        mLines = new Paint(Paint.ANTI_ALIAS_FLAG);
-        mLines.setStrokeWidth(22);
-        mLines.setStyle(Paint.Style.FILL_AND_STROKE);
-        mLines.setStrokeCap(Paint.Cap.ROUND);
 
         attrs.recycle();
     }
@@ -130,6 +131,9 @@ public class BeautifulCircularProgressBar extends View {
                 DEFAULT_PADDING + arcDistance, DEFAULT_PADDING + arcDistance,
                 width - DEFAULT_PADDING - arcDistance, height - DEFAULT_PADDING - arcDistance);
 
+        mMiddleSecondaryRect = new RectF(
+                DEFAULT_PADDING  + arcDistance + 75, DEFAULT_PADDING  + 75 + arcDistance,
+                width - DEFAULT_PADDING - arcDistance- 75 , height - DEFAULT_PADDING - 75 - arcDistance );
 
     }
 
@@ -138,14 +142,15 @@ public class BeautifulCircularProgressBar extends View {
         super.onDraw(canvas);
 
         drawMiddleArc(canvas);
-        drawOutterArc(canvas);
+        drawMiddleArcSmall(canvas);
         drawCenterText(canvas);
+
     }
 
     private void drawCenterText(@NonNull Canvas canvas) {
         if (mShowText) {
-            mCurrentTextPaint.setTextSize(dp2px(34));
-            canvas.drawText(String.valueOf(mCurrentNum)+"%", getWidth()/2, getHeight()/2, mCurrentTextPaint);
+            mCurrentTextPaint.setTextSize(dp2px(26));
+            canvas.drawText(String.valueOf(mCurrentNum)+"%  ", getWidth()/2, getHeight()/2, mCurrentTextPaint);
         }
     }
 
@@ -166,31 +171,26 @@ public class BeautifulCircularProgressBar extends View {
         mNeedle.setColor(getResources().getColor(R.color.red));
 
         //This is the outer most arc
+        DashPathEffect dashPath = new DashPathEffect(new float[]{10,20}, (float)1.0);
         mMiddleArcPaint.setShader(new LinearGradient(0,0,0,750,getResources().getColor(R.color.red),getResources().getColor(R.color.purple), Shader.TileMode.MIRROR));
+        mMiddleArcPaint.setPathEffect(dashPath);
         canvas.drawArc(mMiddleRect, START_ANGLE, END_ANGLE, false, mMiddleArcPaint);
 
         canvas.drawLine(fromX, fromY + margin, toX, toY, mNeedle);
     }
 
-    private void drawOutterArc(@NonNull Canvas canvas) {
-        decreaseBy20--;
-        if(!(decreaseBy20%20==0))
-            return;
 
-        mLines.setColor(Color.WHITE);
+    private void drawMiddleArcSmall(@NonNull Canvas canvas) {
 
-        float r = (radius - DEFAULT_PADDING) - arcDistance - arcDistance + 100;
-        float s = (radius - DEFAULT_PADDING) - arcDistance - arcDistance;
-        float toX = width / 2 + (float) Math.cos(Math.toRadians(mCurrentAngle + START_ANGLE)) * (r);
-        float toY = width / 2 + (float) Math.sin(Math.toRadians(mCurrentAngle + START_ANGLE)) * (r);
 
-        float fromX = width / 2 + (float) Math.cos(Math.toRadians(mCurrentAngle + START_ANGLE)) * (s);
-        float fromY = width / 2 + (float) Math.sin(Math.toRadians(mCurrentAngle + START_ANGLE)) * (s);
-        int margin = 0;
+        mNeedle.setColor(getResources().getColor(R.color.red));
 
-        canvas.drawLine(fromX, fromY + margin, toX, toY, mLines);
+        mMiddleArcSecondaryPaint.setShader(shaderGray);
+        mMiddleArcSecondaryPaint.setPathEffect(dashPath);
+        canvas.drawArc(mMiddleSecondaryRect, START_ANGLE, END_ANGLE, false, mMiddleArcSecondaryPaint);
+
+
     }
-
 
     public int resolveMeasure(int measureSpec, int defaultSize) {
         int result = 0;
@@ -225,23 +225,7 @@ public class BeautifulCircularProgressBar extends View {
         return (int) (values * density + 0.5f);
     }
 
-    public void animate(@FloatRange(from = 0.0f, to=1.0f) float progress) {
-        ValueAnimator anim = ValueAnimator.ofFloat(this.progress, progress);
-        if (this.progress > progress) {
-            anim.setInterpolator(new DecelerateInterpolator());
-            anim.setDuration(750);
-        } else {
-            anim.setInterpolator(new AccelerateDecelerateInterpolator());
-            anim.setDuration(500);
-        }
-        anim.addUpdateListener(new ValueAnimator.AnimatorUpdateListener() {
-            @Override
-            public void onAnimationUpdate(ValueAnimator valueAnimator) {
-                BeautifulCircularProgressBar.this.setProgress((float) valueAnimator.getAnimatedValue());
-            }
-        });
-        anim.start();
-    }
+
 
     public void setTextColor(@ColorInt int color) {
         mCurrentTextPaint.setColor(color);
